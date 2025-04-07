@@ -1,12 +1,7 @@
-export class BoltUserDto {
-    id: string;
-    name: string;
-    email: string;
-  }
-  
-  export class BoltLoginResponseDto {
-    success: boolean;
-    token: string;
-    user: BoltUserDto;
-    expiresIn: number;
-  }
+import { ApiResponseDto } from "./api-response.dto";
+
+export class BoltLoginDataDto {
+  resend_confirmation_interval_ms: number;
+}
+
+export class BoltLoginResponseDto extends ApiResponseDto<BoltLoginDataDto> {}
