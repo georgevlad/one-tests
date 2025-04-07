@@ -9,4 +9,10 @@ export class AppController {
   getHello(): string {
     return this.appService.getHello();
   }
+
+  @Get("health")
+  // This endpoint is used to check the health of the application
+  getHealth(): string {
+    return "As healthy as it gets!";
+  }
 }
