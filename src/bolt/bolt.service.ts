@@ -11,46 +11,17 @@ import { SearchRidesRequestDto } from './dto/search-rides-request.dto';
 
 @Injectable()
 export class BoltService {
-  private readonly baseUrl = 'https://user.live.boltsvc.net/profile/verification';
+  private readonly baseUrl = 'https://user.live.boltsvc.net';
 
   constructor(private readonly httpService: HttpService) {}
 
   async login(loginData: BoltLoginRequestDto): Promise<any> {
-    const url = `${this.baseUrl}/start/v2`;
-
-    // Construct query parameters from the login data
-    const queryParams = {
-      version: loginData.version,
-      deviceId: loginData.deviceId,
-      device_name: loginData.device_name,
-      device_os_version: loginData.device_os_version,
-      channel: loginData.channel,
-      brand: loginData.brand,
-      deviceType: loginData.deviceType,
-      signup_session_id: '', // HARDCODED
-      country: loginData.country,
-      is_local_authentication_available: 'false', // HARDCODED
-      language: 'en', // HARDCODED
-      gps_lat: loginData.gps_lat,
-      gps_lng: loginData.gps_lng,
-      gps_accuracy_m: '10.0', // HARDCODED
-      gps_age: '32', // HARDCODED
-      session_id: `${loginData.deviceId}u${Date.now()}`, // BACKEND GENERATED
-      distinct_id: `%24device%3A${this.generateUUID()}`, // BACKEND GENERATED
-      rh_session_id: `${loginData.deviceId}u${Math.floor(Date.now() / 1000)}`, // BACKEND GENERATED
-    };
-
-    // Construct headers
-    const headers = {
-      'Accept-Encoding': 'gzip',
-      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${loginData.version}%2B3240,sentry-trace_id=${this.generateTraceId()}`,
-      'Connection': 'Keep-Alive',
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Host': 'user.live.boltsvc.net',
-      'sentry-trace': `${this.generateTraceId()}-${this.generateSpanId()}`,
-      'User-Agent': loginData.userAgent,
-    };
-
+    const url = `${this.baseUrl}/profile/verification/start/v2`;
+    
+    // Get query parameters and headers using the common methods
+    const queryParams = this.createQueryParams(loginData);
+    const headers = this.createHeaders(loginData);
+    
     // Construct request body
     const body = {
       type: 'phone', // HARDCODED
@@ -85,62 +56,24 @@ export class BoltService {
         ...response.data
       };
     } catch (error) {
-      console.error('Error during login:', error);
-      
-      // Return a formatted error response
-      return {
-        success: false,
-        message: 'Login request failed',
-        details: error.message || 'An unexpected error occurred',
-        code: error.response?.status || 500,
-        errorData: error.response?.data || null
-      };
+      return this.handleApiError(error, 'login');
     }
   }
 
-  async confirmLogin(phoneNumber: string, password: string, code: string, loginData: BoltLoginRequestDto) {
-    const url = `${this.baseUrl}/confirm/v3`;
-
-    // Construct query parameters
-    const queryParams = {
-      version: loginData.version,
-      deviceId: loginData.deviceId,
-      device_name: loginData.device_name,
-      device_os_version: loginData.device_os_version,
-      channel: loginData.channel,
-      brand: loginData.brand,
-      deviceType: loginData.deviceType,
-      signup_session_id: '', // HARDCODED
-      country: loginData.country,
-      is_local_authentication_available: 'false', // HARDCODED
-      language: 'en', // HARDCODED
-      gps_lat: loginData.gps_lat,
-      gps_lng: loginData.gps_lng,
-      gps_accuracy_m: '10.0', // HARDCODED
-      gps_age: '114', // HARDCODED, different from login
-      session_id: `${loginData.deviceId}u${Date.now()}`, // BACKEND GENERATED
-      distinct_id: `%24device%3A${this.generateUUID()}`, // BACKEND GENERATED
-      rh_session_id: `${loginData.deviceId}u${Math.floor(Date.now() / 1000)}`, // BACKEND GENERATED
-    };
-
-    // Construct headers
-    const headers = {
-      'Accept-Encoding': 'gzip',
-      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${loginData.version}%2B3240,sentry-trace_id=${this.generateTraceId()}`,
-      'Connection': 'Keep-Alive',
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Host': 'user.live.boltsvc.net',
-      'sentry-trace': `${this.generateTraceId()}-${this.generateSpanId()}`,
-      'User-Agent': loginData.userAgent,
-    };
-
+  async confirmLogin(confirmData: BoltConfirmLoginRequestDto) {
+    const url = `${this.baseUrl}/profile/verification/confirm/v3`;
+    
+    // Get query parameters and headers using the common methods
+    const queryParams = this.createQueryParams(confirmData);
+    const headers = this.createHeaders(confirmData);
+    
     // Construct request body
     const body = {
       type: 'phone', // HARDCODED
-      phone_number: phoneNumber,
-      password: password,
-      code: code,
-      timezone: loginData.timezone,
+      phone_number: confirmData.phone_number,
+      password: confirmData.password,
+      code: confirmData.code,
+      timezone: confirmData.timezone,
       last_known_state: {
         opened_product: {
           product: 'taxi', // HARDCODED
@@ -162,7 +95,7 @@ export class BoltService {
         const auth = response.data.data.auth;
         
         // Generate the authorization header
-        const authorizationHeader = this.getAuthorizationHeader(auth.auth_username, password);
+        const authorizationHeader = this.getAuthorizationHeader(auth.auth_username, confirmData.password);
         
         // Return the auth object with the added authorization header
         return {
@@ -180,58 +113,20 @@ export class BoltService {
         };
       }
     } catch (error) {
-      console.error('Error during login confirmation:', error);
-      
-      // Return a formatted error response
-      return {
-        success: false,
-        message: 'Authentication request failed',
-        details: error.message || 'An unexpected error occurred',
-        code: error.response?.status || 500,
-        errorData: error.response?.data || null
-      };
+      return this.handleApiError(error, 'login confirmation');
     }
   }
 
   async getPaymentInstrumentData(paymentDataRequest: PaymentDataRequestDto) {
-    const url = `https://user.live.boltsvc.net/payment/instrument/listWithBalanceData`;
+    const url = `${this.baseUrl}/payment/instrument/listWithBalanceData`;
     
     // Parse lat and lng as numbers
     const lat = parseFloat(paymentDataRequest.gps_lat);
     const lng = parseFloat(paymentDataRequest.gps_lng);
     
-    // Construct query parameters from the request data
-    const queryParams = {
-      version: paymentDataRequest.version,
-      deviceId: paymentDataRequest.deviceId,
-      device_name: paymentDataRequest.device_name,
-      device_os_version: paymentDataRequest.device_os_version,
-      channel: paymentDataRequest.channel,
-      brand: paymentDataRequest.brand,
-      deviceType: paymentDataRequest.deviceType,
-      signup_session_id: '', // HARDCODED
-      country: paymentDataRequest.country,
-      is_local_authentication_available: 'false', // HARDCODED
-      language: 'en', // HARDCODED
-      gps_lat: paymentDataRequest.gps_lat,
-      gps_lng: paymentDataRequest.gps_lng,
-      gps_accuracy_m: '10.0', // HARDCODED
-      gps_age: '0', // HARDCODED
-      user_id: paymentDataRequest.userId,
-      session_id: `${paymentDataRequest.userId}u${Date.now()}`, // BACKEND GENERATED
-      distinct_id: `client-${paymentDataRequest.userId}`, // BACKEND GENERATED
-      rh_session_id: `${paymentDataRequest.userId}u${Math.floor(Date.now() / 1000)}`, // BACKEND GENERATED
-    };
-    
-    // Headers
-    const headers = {
-      'Accept-Encoding': 'gzip',
-      'Authorization': paymentDataRequest.authHeader,
-      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${paymentDataRequest.version}%2B3240,sentry-trace_id=${this.generateTraceId()}`,
-      'Connection': 'Keep-Alive',
-      'Host': 'user.live.boltsvc.net',
-      'User-Agent': paymentDataRequest.userAgent,
-    };
+    // Get query parameters and headers using the common methods
+    const queryParams = this.createQueryParams(paymentDataRequest, paymentDataRequest.userId);
+    const headers = this.createAuthHeaders(paymentDataRequest.userAgent, paymentDataRequest.version, paymentDataRequest.authHeader);
     
     // Body (with extra params)
     const body = {
@@ -255,55 +150,24 @@ export class BoltService {
         data: response.data
       };
     } catch (error) {
-      console.error('Error fetching payment instrument data:', error);
-      
-      return {
-        success: false,
-        message: 'Failed to fetch payment instrument data',
-        details: error.message || 'An unexpected error occurred',
-        code: error.response?.status || 500,
-        errorData: error.response?.data || null
-      };
+      return this.handleApiError(error, 'fetching payment instrument data');
     }
   }
 
   async getFavoriteAddresses(addressRequestDto: GetFavoriteAddressDto) {
-    const url = `https://user.live.boltsvc.net/profile/favoriteAddress/list`;
+    const url = `${this.baseUrl}/profile/favoriteAddress/list`;
     
-    // Construct query parameters from the request data
+    // Get query parameters and headers using the common methods
     const queryParams = {
+      ...this.createQueryParams(addressRequestDto, addressRequestDto.userId),
       include_custom_addresses: 'true', // HARDCODED
-      version: addressRequestDto.version,
-      deviceId: addressRequestDto.deviceId,
-      device_name: addressRequestDto.device_name,
-      device_os_version: addressRequestDto.device_os_version,
-      channel: addressRequestDto.channel,
-      brand: addressRequestDto.brand,
-      deviceType: addressRequestDto.deviceType,
-      signup_session_id: '', // HARDCODED
-      country: addressRequestDto.country,
-      is_local_authentication_available: 'false', // HARDCODED
-      language: 'en', // HARDCODED
-      gps_lat: addressRequestDto.gps_lat,
-      gps_lng: addressRequestDto.gps_lng,
-      gps_accuracy_m: '10.0', // HARDCODED
-      gps_age: '114', // HARDCODED
-      user_id: addressRequestDto.userId,
-      session_id: `${addressRequestDto.deviceId}u${Date.now()}`, // BACKEND GENERATED
-      distinct_id: `%24device%3A${this.generateUUID()}`, // BACKEND GENERATED
-      rh_session_id: `${addressRequestDto.deviceId}u${Math.floor(Date.now() / 1000)}`, // BACKEND GENERATED
     };
     
-    // Headers
-    const headers = {
-      'Accept-Encoding': 'gzip',
-      'Authorization': addressRequestDto.authHeader,
-      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${addressRequestDto.version}%2B3240,sentry-trace_id=${this.generateTraceId()}`,
-      'Connection': 'Keep-Alive',
-      'Host': 'user.live.boltsvc.net',
-      'sentry-trace': `${this.generateTraceId()}-${this.generateSpanId()}`,
-      'User-Agent': addressRequestDto.userAgent,
-    };
+    const headers = this.createAuthHeaders(
+      addressRequestDto.userAgent, 
+      addressRequestDto.version, 
+      addressRequestDto.authHeader
+    );
     
     try {
       const response = await firstValueFrom(
@@ -318,55 +182,21 @@ export class BoltService {
         data: response.data
       };
     } catch (error) {
-      console.error('Error fetching favorite addresses:', error);
-      
-      return {
-        success: false,
-        message: 'Failed to fetch favorite addresses',
-        details: error.message || 'An unexpected error occurred',
-        code: error.response?.status || 500,
-        errorData: error.response?.data || null
-      };
+      return this.handleApiError(error, 'fetching favorite addresses');
     }
   }
   
   async searchRideOptions(searchRidesRequestDto: SearchRidesRequestDto) {
-    const url = `https://user.live.boltsvc.net/rides/search/getRideOptions`;
+    const url = `${this.baseUrl}/rides/search/getRideOptions`;
   
-    // Query parameters
-    const queryParams = {
-      version: searchRidesRequestDto.version,
-      deviceId: searchRidesRequestDto.deviceId,
-      device_name: searchRidesRequestDto.device_name,
-      device_os_version: searchRidesRequestDto.device_os_version,
-      channel: searchRidesRequestDto.channel,
-      brand: searchRidesRequestDto.brand,
-      deviceType: searchRidesRequestDto.deviceType,
-      signup_session_id: '', // HARDCODED
-      country: searchRidesRequestDto.country,
-      is_local_authentication_available: 'false', // HARDCODED
-      language: 'en', // HARDCODED
-      gps_lat: searchRidesRequestDto.originLat.toString(),
-      gps_lng: searchRidesRequestDto.originLng.toString(),
-      gps_accuracy_m: '10.0', // HARDCODED
-      gps_age: '0', // HARDCODED
-      user_id: searchRidesRequestDto.userId,
-      session_id: `${searchRidesRequestDto.userId}u${Date.now()}`, // BACKEND GENERATED
-      distinct_id: `client-${searchRidesRequestDto.userId}`, // BACKEND GENERATED
-      rh_session_id: `${searchRidesRequestDto.userId}u${Math.floor(Date.now() / 1000)}`, // BACKEND GENERATED
-    };
-  
-    // Headers
-    const headers = {
-      'Accept-Encoding': 'gzip',
-      'Authorization': searchRidesRequestDto.authHeader,
-      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${searchRidesRequestDto.version}%2B3240,sentry-trace_id=${this.generateTraceId()}`,
-      'Connection': 'Keep-Alive',
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Host': 'user.live.boltsvc.net',
-      'sentry-trace': `${this.generateTraceId()}-${this.generateSpanId()}`,
-      'User-Agent': searchRidesRequestDto.userAgent,
-    };
+    // Get query parameters and headers using the common methods
+    const queryParams = this.createQueryParams(searchRidesRequestDto, searchRidesRequestDto.userId);
+    const headers = this.createAuthHeaders(
+      searchRidesRequestDto.userAgent, 
+      searchRidesRequestDto.version, 
+      searchRidesRequestDto.authHeader,
+      true // Include Content-Type header
+    );
   
     // Body
     const body = {
@@ -402,16 +232,107 @@ export class BoltService {
         data: response.data
       };
     } catch (error) {
-      console.error('Error searching ride options:', error);
-      
-      return {
-        success: false,
-        message: 'Failed to search ride options',
-        details: error.message || 'An unexpected error occurred',
-        code: error.response?.status || 500,
-        errorData: error.response?.data || null
-      };
+      return this.handleApiError(error, 'searching ride options');
     }
+  }
+
+  // Common methods for reusability
+  
+  /**
+   * Creates common query parameters for Bolt API requests
+   */
+  private createQueryParams(data: any, userId?: string): Record<string, string> {
+    const deviceId = data.deviceId;
+    const sessionId = userId 
+      ? `${userId}u${Date.now()}`
+      : `${deviceId}u${Date.now()}`;
+    
+    const distinctId = userId
+      ? `client-${userId}`
+      : `%24device%3A${this.generateUUID()}`;
+      
+    const rhSessionId = userId 
+      ? `${userId}u${Math.floor(Date.now() / 1000)}`
+      : `${deviceId}u${Math.floor(Date.now() / 1000)}`;
+    
+    return {
+      version: data.version,
+      deviceId: data.deviceId,
+      device_name: data.device_name,
+      device_os_version: data.device_os_version,
+      channel: data.channel,
+      brand: data.brand,
+      deviceType: data.deviceType,
+      signup_session_id: '', // HARDCODED
+      country: data.country,
+      is_local_authentication_available: 'false', // HARDCODED
+      language: 'en', // HARDCODED
+      gps_lat: data.gps_lat || (userId ? data.originLat.toString() : null),
+      gps_lng: data.gps_lng || (userId ? data.originLng.toString() : null),
+      gps_accuracy_m: '10.0', // HARDCODED
+      gps_age: userId ? '0' : '32', // Different for authenticated vs unauthenticated
+      session_id: sessionId,
+      distinct_id: distinctId,
+      rh_session_id: rhSessionId,
+      ...(userId && { user_id: userId }), // Only add user_id if provided
+    };
+  }
+
+  /**
+   * Creates common headers for Bolt API requests
+   */
+  private createHeaders(data: any): Record<string, string> {
+    const traceId = this.generateTraceId();
+    const spanId = this.generateSpanId();
+    
+    return {
+      'Accept-Encoding': 'gzip',
+      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${data.version}%2B3240,sentry-trace_id=${traceId}`,
+      'Connection': 'Keep-Alive',
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Host': 'user.live.boltsvc.net',
+      'sentry-trace': `${traceId}-${spanId}`,
+      'User-Agent': data.userAgent,
+    };
+  }
+  
+  /**
+   * Creates authenticated headers for Bolt API requests
+   */
+  private createAuthHeaders(userAgent: string, version: string, authHeader: string, includeContentType = false): Record<string, string> {
+    const traceId = this.generateTraceId();
+    const spanId = this.generateSpanId();
+    
+    const headers: Record<string, string> = {
+      'Accept-Encoding': 'gzip',
+      'Authorization': authHeader,
+      'baggage': `sentry-environment=production,sentry-public_key=fb5f34fc26a081ff4100b68d3c9c1a42,sentry-release=ee.mtakso.client%40${version}%2B3240,sentry-trace_id=${traceId}`,
+      'Connection': 'Keep-Alive',
+      'Host': 'user.live.boltsvc.net',
+      'sentry-trace': `${traceId}-${spanId}`,
+      'User-Agent': userAgent,
+    };
+    
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json; charset=UTF-8';
+    }
+    
+    return headers;
+  }
+  
+  /**
+   * Standard error handler for API responses
+   */
+  private handleApiError(error: any, operation: string): any {
+    console.error(`Error during ${operation}:`, error);
+    
+    return {
+      success: false,
+      message: `${operation} request failed`,
+      details: error.message || 'An unexpected error occurred',
+      code: error.response?.status || 500,
+      errorData: error.response?.data || null
+    };
   }
 
   // Generate the authorization header
