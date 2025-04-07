@@ -111,7 +111,7 @@ export class BoltController {
     
     const addressResponse = new FavoriteAddressResponseDto();
     
-    if (response.success) {
+    if (response.success && response.data?.message === "OK") {
       addressResponse.success = true;
       addressResponse.message = "Bolt API is reachable";
       addressResponse.data = response.data;

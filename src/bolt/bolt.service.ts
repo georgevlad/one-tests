@@ -182,7 +182,7 @@ export class BoltService {
         data: response.data
       };
     } catch (error) {
-      return this.handleApiError(error, 'fetching favorite addresses');
+      return this.handleApiError(error, 'connecting to the API for test favorite addresses');
     }
   }
   
