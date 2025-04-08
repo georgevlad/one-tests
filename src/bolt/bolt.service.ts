@@ -9,12 +9,16 @@ import { AxiosResponse } from 'axios';
 import { GetFavoriteAddressDto } from './dto/get-favorite-address.dto';
 import { SearchRidesRequestDto } from './dto/search-rides-request.dto';
 import { SimplifiedRideDto } from './dto/simplified-ride-response.dto';
+import { BoltDeeplinkService } from './bolt-deeplink.service';
 
 @Injectable()
 export class BoltService {
   private readonly baseUrl = 'https://user.live.boltsvc.net';
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly deeplinkService: BoltDeeplinkService  // Add this line
+  ) {}
 
   async login(loginData: BoltLoginRequestDto): Promise<any> {
     const url = `${this.baseUrl}/profile/verification/start/v2`;
@@ -238,60 +242,79 @@ export class BoltService {
   }
 
    /**
-   * Transforms the complex ride options response into a simplified format
-   */
-   transformRideOptions(responseData: any): SimplifiedRideDto[] {
-    // Early return if there's no valid data structure
-    if (!responseData?.data?.ride_options?.taxi?.categories) {
-      return [];
-    }
-    
-    const categories = responseData.data.ride_options.taxi.categories;
-    const simplifiedRides: SimplifiedRideDto[] = [];
-    
-    // Iterate through each category
-    for (const categoryId in categories) {
-      if (Object.prototype.hasOwnProperty.call(categories, categoryId)) {
-        const category = categories[categoryId];
-        
-        // Skip unavailable categories
-        if (!category.is_available) {
-          continue;
-        }
-        
-        // Find price from the first item in details.items
-        let price = '';
-        if (category.details?.items && category.details.items.length > 0) {
-          price = category.details.items[0]?.value || '';
-        } else {
-          // Alternatively, use the price from the price object if available
-          price = category.price?.actual_str || '';
-        }
-        
-        // Extract ETA from secondary_info
-        let eta = '';
-        if (category.secondary_info && category.secondary_info.length > 0) {
-          eta = category.secondary_info[0]?.text || '';
-        } else if (category.eta_info) {
-          eta = category.eta_info.pickup_eta_str || '';
-        }
-        
-        // Create the simplified ride object
-        const simplifiedRide: SimplifiedRideDto = {
-          ride_name: category.name || '',
-          price: price,
-          ride_description: category.details?.description || '',
-          category_id: categoryId,
-          eta: eta,
-          icon_url: category.icon_url || ''
-        };
-        
-        simplifiedRides.push(simplifiedRide);
-      }
-    }
-    
-    return simplifiedRides;
+ * Transforms the complex ride options response into a simplified format
+ * with deeplinks for each ride option
+ */
+transformRideOptions(responseData: any, searchRequest?: SearchRidesRequestDto): SimplifiedRideDto[] {
+  // Early return if there's no valid data structure
+  if (!responseData?.data?.ride_options?.taxi?.categories) {
+    return [];
   }
+  
+  const categories = responseData.data.ride_options.taxi.categories;
+  const simplifiedRides: SimplifiedRideDto[] = [];
+  
+  // Iterate through each category
+  for (const categoryId in categories) {
+    if (Object.prototype.hasOwnProperty.call(categories, categoryId)) {
+      const category = categories[categoryId];
+      
+      // Skip unavailable categories
+      if (!category.is_available) {
+        continue;
+      }
+      
+      // Find price from the first item in details.items
+      let price = '';
+      if (category.details?.items && category.details.items.length > 0) {
+        price = category.details.items[0]?.value || '';
+      } else {
+        // Alternatively, use the price from the price object if available
+        price = category.price?.actual_str || '';
+      }
+      
+      // Extract ETA from secondary_info
+      let eta = '';
+      if (category.secondary_info && category.secondary_info.length > 0) {
+        eta = category.secondary_info[0]?.text || '';
+      } else if (category.eta_info) {
+        eta = category.eta_info.pickup_eta_str || '';
+      }
+      
+      // Create the simplified ride object
+      const simplifiedRide: SimplifiedRideDto = {
+        ride_name: category.name || '',
+        price: price,
+        ride_description: category.details?.description || '',
+        category_id: categoryId,
+        eta: eta,
+        icon_url: category.icon_url || ''
+      };
+      
+      // Generate deeplink if search request is available
+      if (searchRequest) {
+        // Extract estimated time in seconds
+        const etaSeconds = this.deeplinkService.extractEtaSeconds(eta);
+        
+        // Extract currency from the price
+        const currency = this.deeplinkService.extractCurrency(price);
+        
+        // Generate the deeplink
+        simplifiedRide.deeplink = this.deeplinkService.generateDeeplink(
+          searchRequest,
+          categoryId,
+          price, 
+          etaSeconds,
+          currency
+        );
+      }
+      
+      simplifiedRides.push(simplifiedRide);
+    }
+  }
+  
+  return simplifiedRides;
+}
 
   // Common methods for reusability
   

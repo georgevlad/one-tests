@@ -134,7 +134,7 @@ export class BoltController {
     
     if (response.success) {
       // Transform the complex ride options response into a simplified format
-      const simplifiedRides = this.boltService.transformRideOptions(response.data);
+      const simplifiedRides = this.boltService.transformRideOptions(response.data, searchRidesRequestDto);
       
       searchResponse.success = true;
       searchResponse.message = "Ride options retrieved successfully";

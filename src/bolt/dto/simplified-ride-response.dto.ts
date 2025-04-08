@@ -7,6 +7,7 @@ export class SimplifiedRideDto {
   category_id: string;
   eta: string;
   icon_url: string;
+  deeplink?: string;
 }
 
 export class SimplifiedRideResponseDto extends ApiResponseDto<SimplifiedRideDto[]> {}
