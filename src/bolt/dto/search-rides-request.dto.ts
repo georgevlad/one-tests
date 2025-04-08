@@ -51,24 +51,40 @@ export class SearchRidesRequestDto {
   @IsNotEmpty()
   timezone: string;
 
-  // Ride-specific params
-  @IsNumber()
-  @IsLatitude()
-  originLat: number;
-
-  @IsNumber()
-  @IsLongitude()
-  originLng: number;
-
-  @IsNumber()
-  @IsLatitude()
-  destinationLat: number;
-
-  @IsNumber()
-  @IsLongitude()
-  destinationLng: number;
-
-  @IsString()
-  @IsNotEmpty()
-  paymentTokenId: string;
-}
+   // Ride-specific params
+   @IsNumber()
+   @IsLatitude()
+   originLat: number;
+ 
+   @IsNumber()
+   @IsLongitude()
+   originLng: number;
+ 
+   @IsString()
+   @IsNotEmpty()
+   pickupFormattedAddress: string;
+ 
+   @IsString()
+   @IsNotEmpty()
+   pickupTitle: string;
+ 
+   @IsNumber()
+   @IsLatitude()
+   destinationLat: number;
+ 
+   @IsNumber()
+   @IsLongitude()
+   destinationLng: number;
+ 
+   @IsString()
+   @IsNotEmpty()
+   dropoffFormattedAddress: string;
+ 
+   @IsString()
+   @IsNotEmpty()
+   dropoffTitle: string;
+ 
+   @IsString()
+   @IsNotEmpty()
+   paymentTokenId: string;
+ }

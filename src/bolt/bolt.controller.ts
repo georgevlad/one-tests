@@ -5,6 +5,8 @@ import { BoltConfirmLoginRequestDto } from './dto/confirm-login-request.dto';
 import { PaymentDataRequestDto } from './dto/payment-data-request.dto';
 import { GetFavoriteAddressDto } from './dto/get-favorite-address.dto';
 import { SearchRidesRequestDto } from './dto/search-rides-request.dto';
+import { SimplifiedRideResponseDto } from './dto/simplified-ride-response.dto';
+
 import { 
   ApiResponseDto,
   BoltLoginResponseDto, 
@@ -125,15 +127,18 @@ export class BoltController {
   }
 
   @Post('search-rides')
-  async searchRides(@Body() searchRidesRequestDto: SearchRidesRequestDto): Promise<SearchRidesResponseDto> {
+  async searchRides(@Body() searchRidesRequestDto: SearchRidesRequestDto): Promise<SimplifiedRideResponseDto> {
     const response = await this.boltService.searchRideOptions(searchRidesRequestDto);
     
-    const searchResponse = new SearchRidesResponseDto();
+    const searchResponse = new SimplifiedRideResponseDto();
     
     if (response.success) {
+      // Transform the complex ride options response into a simplified format
+      const simplifiedRides = this.boltService.transformRideOptions(response.data);
+      
       searchResponse.success = true;
       searchResponse.message = "Ride options retrieved successfully";
-      searchResponse.data = response.data;
+      searchResponse.data = simplifiedRides;
     } else {
       searchResponse.success = false;
       searchResponse.message = response.message || "Failed to retrieve ride options";

@@ -8,6 +8,7 @@ import { PaymentDataRequestDto } from './dto/payment-data-request.dto';
 import { AxiosResponse } from 'axios';
 import { GetFavoriteAddressDto } from './dto/get-favorite-address.dto';
 import { SearchRidesRequestDto } from './dto/search-rides-request.dto';
+import { SimplifiedRideDto } from './dto/simplified-ride-response.dto';
 
 @Injectable()
 export class BoltService {
@@ -234,6 +235,62 @@ export class BoltService {
     } catch (error) {
       return this.handleApiError(error, 'searching ride options');
     }
+  }
+
+   /**
+   * Transforms the complex ride options response into a simplified format
+   */
+   transformRideOptions(responseData: any): SimplifiedRideDto[] {
+    // Early return if there's no valid data structure
+    if (!responseData?.data?.ride_options?.taxi?.categories) {
+      return [];
+    }
+    
+    const categories = responseData.data.ride_options.taxi.categories;
+    const simplifiedRides: SimplifiedRideDto[] = [];
+    
+    // Iterate through each category
+    for (const categoryId in categories) {
+      if (Object.prototype.hasOwnProperty.call(categories, categoryId)) {
+        const category = categories[categoryId];
+        
+        // Skip unavailable categories
+        if (!category.is_available) {
+          continue;
+        }
+        
+        // Find price from the first item in details.items
+        let price = '';
+        if (category.details?.items && category.details.items.length > 0) {
+          price = category.details.items[0]?.value || '';
+        } else {
+          // Alternatively, use the price from the price object if available
+          price = category.price?.actual_str || '';
+        }
+        
+        // Extract ETA from secondary_info
+        let eta = '';
+        if (category.secondary_info && category.secondary_info.length > 0) {
+          eta = category.secondary_info[0]?.text || '';
+        } else if (category.eta_info) {
+          eta = category.eta_info.pickup_eta_str || '';
+        }
+        
+        // Create the simplified ride object
+        const simplifiedRide: SimplifiedRideDto = {
+          ride_name: category.name || '',
+          price: price,
+          ride_description: category.details?.description || '',
+          category_id: categoryId,
+          eta: eta,
+          icon_url: category.icon_url || ''
+        };
+        
+        simplifiedRides.push(simplifiedRide);
+      }
+    }
+    
+    return simplifiedRides;
   }
 
   // Common methods for reusability
