@@ -126,25 +126,4 @@ export class BoltController {
     return addressResponse;
   }
 
-  @Post('search-rides')
-  async searchRides(@Body() searchRidesRequestDto: SearchRidesRequestDto): Promise<SimplifiedRideResponseDto> {
-    const response = await this.boltService.searchRideOptions(searchRidesRequestDto);
-    
-    const searchResponse = new SimplifiedRideResponseDto();
-    
-    if (response.success) {
-      // Transform the complex ride options response into a simplified format
-      const simplifiedRides = this.boltService.transformRideOptions(response.data, searchRidesRequestDto);
-      
-      searchResponse.success = true;
-      searchResponse.message = "Ride options retrieved successfully";
-      searchResponse.data = simplifiedRides;
-    } else {
-      searchResponse.success = false;
-      searchResponse.message = response.message || "Failed to retrieve ride options";
-      searchResponse.error = response.details || "An error occurred while searching for ride options";
-    }
-    
-    return searchResponse;
-  }
 }

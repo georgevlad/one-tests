@@ -3,20 +3,20 @@ import { Injectable } from '@nestjs/common';
 import { SearchRidesRequestDto } from './dto/search-rides-request.dto';
 
 interface DeeplinkParams {
-  clientId: string;
-  dropoffFormattedAddress: string;
-  dropoffLatitude: string;
-  dropoffLongitude: string;
-  dropoffTitle: string;
-  etaSeconds: string;
-  fareCurrency: string;
-  fareHigh: string;
-  fareLow: string;
-  pickupFormattedAddress: string;
-  pickupLatitude: string;
-  pickupLongitude: string;
-  pickupTitle: string;
-  productId: string;
+  client_id: string;  
+  pickup_formatted_address: string;  
+  pickup_latitude: string; 
+  pickup_longitude: string; 
+  pickup_title: string; 
+  dropoff_formatted_address: string;
+  dropoff_latitude: string;
+  dropoff_longitude: string; 
+  dropoff_title: string; 
+  eta_seconds: string;  
+  fare_currency: string;  
+  fare_high: string;
+  fare_low: string; 
+  product_id: string;  
 }
 
 @Injectable()
@@ -38,33 +38,42 @@ export class BoltDeeplinkService {
     fareCurrency: string = 'RON', // Default currency if not available
   ): string {
     // Clean the price string - remove any non-numeric characters except decimal point
-    const cleanPrice = price.replace(/[^0-9.]/g, '');
+    let cleanPrice = price.replace(/[^0-9.]/g, '');
     
-    // Set client ID - typically the source of the request
-    const clientId = 'ONERIDE_API'; 
+    // Ensure price has two decimal places
+    if (cleanPrice.includes('.')) {
+      const parts = cleanPrice.split('.');
+      if (parts[1].length === 1) {
+        cleanPrice = `${parts[0]}.${parts[1]}0`;
+      }
+    } else {
+      cleanPrice = `${cleanPrice}.00`;
+    }
     
-    // Create parameters for the deep link
+    // Set client ID - using GOOGLE_MAPS instead of ONERIDE_API as it works
+    const clientId = 'GOOGLE_MAPS'; 
+    
+    // Create parameters for the deep link 
     const params: DeeplinkParams = {
-      clientId,
-      dropoffFormattedAddress: rideRequest.dropoffFormattedAddress,
-      dropoffLatitude: rideRequest.destinationLat.toString(),
-      dropoffLongitude: rideRequest.destinationLng.toString(),
-      dropoffTitle: rideRequest.dropoffTitle,
-      etaSeconds: etaSeconds.toString(),
-      fareCurrency,
-      fareHigh: cleanPrice,
-      fareLow: cleanPrice,
-      pickupFormattedAddress: rideRequest.pickupFormattedAddress,
-      pickupLatitude: rideRequest.originLat.toString(),
-      pickupLongitude: rideRequest.originLng.toString(),
-      pickupTitle: rideRequest.pickupTitle,
-      productId: categoryId,
+      client_id: clientId,
+      pickup_formatted_address: rideRequest.pickupFormattedAddress,
+      pickup_latitude: rideRequest.originLat.toString(),
+      pickup_longitude: rideRequest.originLng.toString(),
+      pickup_title: rideRequest.pickupFormattedAddress,
+      dropoff_formatted_address: rideRequest.dropoffFormattedAddress,
+      dropoff_latitude: rideRequest.destinationLat.toString(),
+      dropoff_longitude: rideRequest.destinationLng.toString(),
+      dropoff_title: rideRequest.dropoffTitle,
+      eta_seconds: etaSeconds.toString(),
+      fare_currency: fareCurrency,
+      fare_high: cleanPrice,
+      fare_low: cleanPrice,
+      product_id: categoryId,
     };
     
-    // Generate the deep link value (the part after deep_link_value=)
+    
     const deepLinkValue = this.generateDeepLinkValue(params);
     
-    // Construct the OneLink URL with all parameters
     return this.constructOneLinkUrl(params, deepLinkValue);
   }
   
@@ -93,21 +102,21 @@ export class BoltDeeplinkService {
     
     // OneLink params includes both deep link value and all the original params again
     const queryParams = [
-      `pickup_formatted_address=${encodeURIComponent(params.pickupFormattedAddress)}`,
-      `dropoff_formatted_address=${encodeURIComponent(params.dropoffFormattedAddress)}`,
-      `fare_high=${params.fareHigh}`,
-      `c=${params.clientId}`,
-      `eta_seconds=${params.etaSeconds}`,
+      `pickup_formatted_address=${encodeURIComponent(params.pickup_formatted_address)}`,
+      `dropoff_formatted_address=${encodeURIComponent(params.dropoff_formatted_address)}`,
+      `fare_high=${params.fare_high}`,
+      `c=${params.client_id}`,
+      `eta_seconds=${params.eta_seconds}`,
       `deep_link_value=${encodeURIComponent(deepLinkValue)}`,
-      `dropoff_latitude=${params.dropoffLatitude}`,
-      `dropoff_title=${encodeURIComponent(params.dropoffTitle)}`,
-      `product_id=${params.productId}`,
-      `fare_currency=${params.fareCurrency}`,
-      `pickup_longitude=${params.pickupLongitude}`,
-      `fare_low=${params.fareLow}`,
-      `pickup_latitude=${params.pickupLatitude}`,
-      `pickup_title=${encodeURIComponent(params.pickupTitle)}`,
-      `dropoff_longitude=${params.dropoffLongitude}`
+      `dropoff_latitude=${params.dropoff_latitude}`,
+      `dropoff_title=${encodeURIComponent(params.dropoff_title)}`,
+      `product_id=${params.product_id}`,
+      `fare_currency=${params.fare_currency}`,
+      `pickup_longitude=${params.pickup_longitude}`,
+      `fare_low=${params.fare_low}`,
+      `pickup_latitude=${params.pickup_latitude}`,
+      `pickup_title=${encodeURIComponent(params.pickup_title)}`,
+      `dropoff_longitude=${params.dropoff_longitude}`
     ].join('&');
     
     // Return the complete OneLink URL
