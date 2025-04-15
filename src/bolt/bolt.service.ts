@@ -311,6 +311,7 @@ transformRideOptions(responseData: any, searchRequest?: SearchRidesRequestDto): 
         ride_description: category.details?.description || '',
         category_id: categoryId,
         eta: eta,
+        type: 'bolt', // Add hardcoded "bolt" type
         icon_url: category.icon_url || ''
       };
       

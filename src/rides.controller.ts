@@ -1,4 +1,6 @@
-import { Controller, Post, Get, Body } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, Req, HttpException, HttpStatus } from '@nestjs/common';
+import { Request } from 'express';
+
 import { BoltService } from './bolt/bolt.service';
 import { SearchRidesRequestDto } from './bolt/dto/search-rides-request.dto';
 import { SimplifiedRideResponseDto } from './bolt/dto/simplified-ride-response.dto';
@@ -39,9 +41,45 @@ export class RidesController {
     
     return connectionResponse;
   }
-
+  
+  // Original POST endpoint
   @Post('search-rides')
-  async searchRides(@Body() searchRidesRequestDto: SearchRidesRequestDto): Promise<SimplifiedRideResponseDto> {
+  async searchRidesPost(@Body() searchRidesRequestDto: SearchRidesRequestDto): Promise<SimplifiedRideResponseDto> {
+    return this.searchRidesHandler(searchRidesRequestDto);
+  }
+
+  // New GET endpoint
+  @Get('search-rides')
+  async searchRidesGet(@Query() query: any): Promise<SimplifiedRideResponseDto> {
+    try {
+      // Convert string values to the proper types
+      const searchRequest = new SearchRidesRequestDto();
+      
+      // Map all string properties directly
+      Object.keys(query).forEach(key => {
+        if (typeof query[key] === 'string') {
+          searchRequest[key] = query[key];
+        }
+      });
+      
+      // Convert numeric properties
+      if (query.originLat) searchRequest.originLat = parseFloat(query.originLat);
+      if (query.originLng) searchRequest.originLng = parseFloat(query.originLng);
+      if (query.destinationLat) searchRequest.destinationLat = parseFloat(query.destinationLat);
+      if (query.destinationLng) searchRequest.destinationLng = parseFloat(query.destinationLng);
+      
+      return this.searchRidesHandler(searchRequest);
+    } catch (error) {
+      throw new HttpException({
+        success: false,
+        message: 'Failed to process GET request',
+        error: error.message
+      }, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // Common handler for both endpoints
+  private async searchRidesHandler(searchRidesRequestDto: SearchRidesRequestDto): Promise<SimplifiedRideResponseDto> {
     const response = await this.boltService.searchRideOptions(searchRidesRequestDto);
     
     const searchResponse = new SimplifiedRideResponseDto();
@@ -61,4 +99,5 @@ export class RidesController {
     
     return searchResponse;
   }
+
 }

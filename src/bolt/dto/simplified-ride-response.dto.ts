@@ -7,6 +7,7 @@ export class SimplifiedRideDto {
   category_id: string;
   eta: string;
   icon_url: string;
+  type: string;
   deeplink?: string;
 }
 
