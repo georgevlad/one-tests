@@ -7,6 +7,7 @@ import { RidesController } from './rides.controller';
 import { HttpModule } from '@nestjs/axios';
 import { BoltService } from './bolt/bolt.service';
 import { BoltDeeplinkService } from './bolt/bolt-deeplink.service';
+import { RequestLoggerService } from './utils/request-logger.service';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { BoltDeeplinkService } from './bolt/bolt-deeplink.service';
   providers: [
     AppService, 
     BoltService, 
-    BoltDeeplinkService
+    BoltDeeplinkService,
+    RequestLoggerService
   ],
 })
 export class AppModule {}

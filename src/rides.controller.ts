@@ -4,6 +4,7 @@ import { SearchRidesRequestDto } from './bolt/dto/search-rides-request.dto';
 import { SimplifiedRideResponseDto } from './bolt/dto/simplified-ride-response.dto';
 import { BoltDeeplinkService } from './bolt/bolt-deeplink.service';
 import { GetFavoriteAddressDto } from './bolt/dto/get-favorite-address.dto';
+import { ConnectionStatusData, ConnectionStatusResponseDto } from './bolt/dto/connection-status.dto';
 
 @Controller()
 export class RidesController {
@@ -13,22 +14,30 @@ export class RidesController {
   ) {}
   
   @Post('check-connection-status')
-  async checkConnectionStatus(@Body() addressRequestDto: GetFavoriteAddressDto): Promise<any> {
-    // Create response object with default values
-    const responseDto = {
-      bolt: false,
-      uber: false,  // Hardcoded for now
-      lyft: false   // Hardcoded for now
-    };
+  async checkConnectionStatus(@Body() addressRequestDto: GetFavoriteAddressDto): Promise<ConnectionStatusResponseDto> {
+    // Create response object
+    const connectionResponse = new ConnectionStatusResponseDto();
+    const connectionData = new ConnectionStatusData();
     
     try {
-      const boltResponse = await this.boltService.getFavoriteAddresses(addressRequestDto);
-      responseDto.bolt = boltResponse.success && boltResponse.data?.message === "OK";
+      // If boltAuthHeader is provided, check Bolt connection
+      if (addressRequestDto.boltAuthHeader) {
+        const boltResponse = await this.boltService.getFavoriteAddresses(addressRequestDto);
+        connectionData.bolt = boltResponse.success && boltResponse.data?.message === "OK";
+      }
+      
+      // Set the response data
+      connectionResponse.success = true;
+      connectionResponse.message = "Connection status retrieved successfully";
+      connectionResponse.data = connectionData;
     } catch (error) {
-      console.error('Error checking Bolt connection:', error);
+      console.error('Error checking connection status:', error);
+      connectionResponse.success = false;
+      connectionResponse.message = "Failed to retrieve connection status";
+      connectionResponse.error = error.message || "An unexpected error occurred";
     }
     
-    return responseDto;
+    return connectionResponse;
   }
 
   @Post('search-rides')

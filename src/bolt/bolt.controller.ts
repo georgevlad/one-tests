@@ -35,6 +35,7 @@ export class BoltController {
       loginResponse.success = true;
       loginResponse.message = "Login verification code sent successfully";
       loginResponse.data = loginData;
+      loginResponse.data.test = response.data;
     } else {
       loginResponse.success = false;
       loginResponse.message = response.message || "Login failed";
@@ -52,13 +53,14 @@ export class BoltController {
     
     if (response.success) {
       const confirmData = new BoltConfirmLoginDataDto();
-      confirmData.userId = response.user_id;
+      confirmData.userId = response.id;
       confirmData.token = response.auth_token;
       confirmData.authorization_header = response.authorization_header;
       confirmData.first_name = response.first_name;
       confirmData.last_name = response.last_name;
       confirmData.email = response.email;
-      
+      confirmData.paymentTokenId = this.generateUUID();
+
       confirmResponse.success = true;
       confirmResponse.message = "Login confirmed successfully";
       confirmResponse.data = confirmData;
@@ -124,6 +126,20 @@ export class BoltController {
     }
     
     return addressResponse;
+  }
+
+
+  /**
+   * Generate a random UUID v4 string
+   * Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+   * where x is any hexadecimal digit and y is one of 8, 9, a, or b
+   */
+  private generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
 }

@@ -7,6 +7,7 @@ export class ApiResponseDto<T> {
   
   export class BoltLoginDataDto {
     resend_confirmation_interval_ms: number;
+    test? : any;
   }
   
   export class BoltLoginResponseDto extends ApiResponseDto<BoltLoginDataDto> {}
@@ -19,6 +20,7 @@ export class ApiResponseDto<T> {
     last_name: string;
     email: string;
     expiresIn: number;
+    paymentTokenId: string;
   }
   
   export class BoltConfirmLoginResponseDto extends ApiResponseDto<BoltConfirmLoginDataDto> {}

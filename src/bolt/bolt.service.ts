@@ -10,6 +10,7 @@ import { GetFavoriteAddressDto } from './dto/get-favorite-address.dto';
 import { SearchRidesRequestDto } from './dto/search-rides-request.dto';
 import { SimplifiedRideDto } from './dto/simplified-ride-response.dto';
 import { BoltDeeplinkService } from './bolt-deeplink.service';
+import { RequestLoggerService } from '../utils/request-logger.service';
 
 @Injectable()
 export class BoltService {
@@ -17,7 +18,8 @@ export class BoltService {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly deeplinkService: BoltDeeplinkService  // Add this line
+    private readonly deeplinkService: BoltDeeplinkService,
+    private readonly requestLogger: RequestLoggerService
   ) {}
 
   async login(loginData: BoltLoginRequestDto): Promise<any> {
@@ -49,6 +51,17 @@ export class BoltService {
     };
 
     try {
+
+          // Log request details before making the API call
+    await this.requestLogger.logRequest('bolt', 'login', {
+      url,
+      method: 'POST',
+      headers,
+      queryParams,
+      body,
+      timestamp: new Date().toISOString()
+    });
+
       const response = await firstValueFrom(
         this.httpService.post(url, body, {
           headers,
@@ -85,6 +98,16 @@ export class BoltService {
         },
       },
     };
+
+    // Log request details before making the API call
+    await this.requestLogger.logRequest('bolt', 'confirmLogin', {
+      url,
+      method: 'POST',
+      headers,
+      queryParams,
+      body,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       const response = await firstValueFrom(
@@ -164,14 +187,14 @@ export class BoltService {
     
     // Get query parameters and headers using the common methods
     const queryParams = {
-      ...this.createQueryParams(addressRequestDto, addressRequestDto.userId),
+      ...this.createQueryParams(addressRequestDto, addressRequestDto.boltUserId),
       include_custom_addresses: 'true', // HARDCODED
     };
     
     const headers = this.createAuthHeaders(
       addressRequestDto.userAgent, 
       addressRequestDto.version, 
-      addressRequestDto.authHeader
+      addressRequestDto.boltAuthHeader
     );
     
     try {

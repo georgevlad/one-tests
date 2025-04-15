@@ -4,11 +4,11 @@ import { IsString, IsNotEmpty, IsLatitude, IsLongitude } from 'class-validator';
 export class GetFavoriteAddressDto {
   @IsString()
   @IsNotEmpty()
-  userId: string;
+  boltUserId: string;
 
   @IsString()
   @IsNotEmpty()
-  authHeader: string;
+  boltAuthHeader: string;
 
   @IsString()
   @IsNotEmpty()
